@@ -1,6 +1,8 @@
 # PredNet training
 
-A model of [PredNet](https://coxlab.github.io/prednet/) in Torch7
+A model of [PredNet](https://coxlab.github.io/prednet/) in [Torch7](http://torch.ch/)
+
+![sample](sample.jpg)
 
 To run:
 
