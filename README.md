@@ -11,3 +11,4 @@ To run:
 
 3: run: ```qlua main.lua -nlayers 3 -display -save -savePics``` to train with 2 layers (1-4 layer possible), visualize and save model and results
 
+GPU supported by ```-useGPU``` option.
