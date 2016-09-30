@@ -1,4 +1,5 @@
 -- Eugenio Culurciello, SangPil Kim
+-- with help from Alfredo Canziani and Abhishek Chaurasia
 -- August - September 2016
 -- PredNet in Torch7 - from: https://arxiv.org/abs/1605.08104
 --
