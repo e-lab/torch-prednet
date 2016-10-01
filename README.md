@@ -12,3 +12,8 @@ Download dataset: moving [MNIST examples](https://www.dropbox.com/sh/fvsqod4uv7y
 ## to train PredNet:
 
 Run: ```qlua main.lua -useGPU -dataBig -nlayers 3 -display -save -savePics``` to train on GPU on large dataset, visualize and save model and results.
+
+
+### Notes:
+
+Memory usage: decrease `nSeq` parameter to use less memory. The model is clones `nSeq` times and so memory usage is proportional to it.
