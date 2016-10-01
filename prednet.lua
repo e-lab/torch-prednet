@@ -3,8 +3,6 @@
 -- PredNet in Torch7 - from: https://arxiv.org/abs/1605.08104
 -------------------------------------------------------------------------------
 
--- note: we did not use saturating ReLU as in original paper
-
 require 'nn'
 require 'nngraph'
 require 'convLSTM'
@@ -79,7 +77,11 @@ function PredNet(nlayers, input_stride, poolsize, mapss, clOpt, testing)
       -- A-hat branch:
       cAh = nn.SpatialConvolution(mapss[L], mapss[L], 3, 3, input_stride, input_stride, 1, 1) -- Ah convolution
       iR = R[L] - nn.SelectTable(2) -- select 2nd = LSTM cell state
-      Ah = {iR} - cAh - nn.ReLU()
+      if L == 1 then 
+         Ah = {iR} - cAh - nn.HardTanh(0,1) -- saturating ReLU like in original paper
+      else
+         Ah = {iR} - cAh - nn.ReLU()
+      end
       op = nn.PReLU(mapss[L])
 
       E[L] = { {A, Ah} - nn.CSubTable(1) - nn.ReLU(), {Ah, A} - nn.CSubTable(1) - nn.ReLU() } - nn.JoinTable(1)
