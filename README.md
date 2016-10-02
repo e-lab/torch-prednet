@@ -16,4 +16,4 @@ Run: ```qlua main.lua -useGPU -dataBig -nlayers 3 -display -save -savePics``` to
 
 ### Notes:
 
-- Memory usage: decrease `nSeq` parameter to use less memory. The model is clones `nSeq` times and so memory usage is proportional to it.
+- Memory usage: decrease `nSeq` parameter to use less memory. The model is cloned `nSeq` times and therefore memory usage is proportional to it.
