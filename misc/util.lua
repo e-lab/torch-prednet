@@ -113,8 +113,13 @@ function prepareData(opt, sample)
    end
    return inTableG0, targetC, targetF
 end
-function display(opt, seqTable,targetF,targetC,output)
+function display(opt, seqTable,targetF,targetC,output, flag)
    if opt.display then
+      if flag == 'train' then
+        legend = 'Train: t-3, t-2, t-1, Target, Prediction'
+      else
+        legend = 'Test: t-3, t-2, t-1, Target, Prediction'
+      end
       require 'env'
       local pic
       if opt.batch == 1 then
@@ -123,25 +128,28 @@ function display(opt, seqTable,targetF,targetC,output)
                           targetC:squeeze(),
                           targetF:squeeze(),
                           output:squeeze() }
-         _im1_ = image.display{image=pic, min=0, max=1, win = _im1_, nrow = 7,
-                            legend = 't-3, t-2, t-1, Target, Prediction'}
       else
          pic = { seqTable[#seqTable-2][1]:squeeze(),
                           seqTable[#seqTable-2][1]:squeeze(),
                           targetC[1]:squeeze(),
                           targetF[1]:squeeze(),
                           output[1]:squeeze() }
-         _im1_ = image.display{image=pic, min=0, max=1, win = _im1_, nrow = 7,
-                            legend = 't-3, t-2, t-1, Target, Prediction'}
       end
+      _im1_ = image.display{image=pic, min=0, max=1, win = _im1_, nrow = 7,
+                         legend = legend}
    end
 end
-function savePics(opt,target,output,epoch,t)
+function savePics(opt,target,output,epoch,t, disFlag)
    --Save pics
    print('Save pics!')
-   if math.fmod(t, opt.picFreq) == 0 and opt.batch == 1 then
-      image.save(paths.concat(opt.savedir ,'pic_target_'..epoch..'_'..t..'.jpg'), target)
-      image.save(paths.concat(opt.savedir ,'pic_output_'..epoch..'_'..t..'.jpg'), output)
+   if disFlag ~= 'train' then disFlag = 'test' end
+   if opt.savePics then
+      if opt.batch > 1 then
+         target = target[1]:squeeze()
+         output = output[1]:squeeze()
+      end
+      image.save(paths.concat(opt.savedir ,'pic_target_'..epoch..'_'..t..'_'..disFlag..'.jpg'), target)
+      image.save(paths.concat(opt.savedir ,'pic_output_'..epoch..'_'..t..'_'..disFlag..'.jpg'), output)
    end
 end
 function save( model, optimState, opt, epoch)

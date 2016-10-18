@@ -2,7 +2,6 @@
 -- August - September 2016
 -------------------------------------------------------------------------------
 function test(opt,datasetSeq,epoch,testLog)
-
    if opt.useGPU then
       require 'cunn'
       require 'cutorch'
@@ -40,7 +39,8 @@ function test(opt,datasetSeq,epoch,testLog)
       if math.fmod(t, 1) == 0 then
         -- Display
         if opt.display then
-           display(seqTable,targetF,targetC)
+            local disFlag = 'test'
+           display(opt, inTableG0[#inTableG0], targetF, targetC, output[1], disFlag)
         end
       end
    end

@@ -41,10 +41,9 @@ function train(opt,datasetSeq, epoch, trainLog)
 
          -- Display and Save picts
          if math.fmod(t*opt.batch, opt.disFreq) == 0 then
-            display(opt, seqTable, targetF, targetC, output[1])
-         end
-         if opt.savePic then
-           savePics(opt,targetF,output[1],epoch,t)
+            local disFlag = 'train'
+            display(opt, inTableG0[#inTableG0], targetF, targetC, output[1],disFlag)
+            savePics(opt,targetF,output[1],epoch,t, disFlag)
          end
          --Calculate Matric
          -- Calculate Error and sum
