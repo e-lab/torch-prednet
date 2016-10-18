@@ -11,7 +11,7 @@ Download dataset: moving [MNIST examples](https://www.dropbox.com/sh/fvsqod4uv7y
 
 ## to train PredNet:
 
-Run: ```qlua main.lua -useGPU -dataBig -nlayers 3 -display -save -savePics``` to train on GPU on large dataset, visualize and save model and results.
+Run: ```qlua main.lua -useGPU -dataBig -nlayers 3 -display -save -savePics -batch 10``` to train on GPU on large dataset, visualize and save model and results.
 
 
 ### Notes:

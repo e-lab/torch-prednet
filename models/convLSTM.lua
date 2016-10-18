@@ -57,10 +57,10 @@ function convLSTM(inDim, outDim, opt)
     local h2Og = scNB(outDim, outDim, kw, kh, stw, sth, paw, pah)(prevC)
     local h2It = scNB(outDim, outDim, kw, kh, stw, sth, paw, pah)(prevC)
 
-    local ig = nn.CAddTable()({i2Ig, h2Ig})
-    local fg = nn.CAddTable()({i2Fg, h2Fg})
-    local og = nn.CAddTable()({i2Og, h2Og})
-    local it = nn.CAddTable()({i2It, h2It})
+    local ig = nn.CAddTable(1,1)({i2Ig, h2Ig})
+    local fg = nn.CAddTable(1,1)({i2Fg, h2Fg})
+    local og = nn.CAddTable(1,1)({i2Og, h2Og})
+    local it = nn.CAddTable(1,1)({i2It, h2It})
 
     -- Gates
     local inGate = sg()(ig)
@@ -68,12 +68,12 @@ function convLSTM(inDim, outDim, opt)
     local ouGate = sg()(og)
     local inTanh = nn.Tanh()(it)
     -- Calculate Cell state
-    local nextC = nn.CAddTable()({
-        nn.CMulTable()({fgGate, prevC}),
-        nn.CMulTable()({inGate, inTanh})
+    local nextC = nn.CAddTable(1,1)({
+        nn.CMulTable(1,1)({fgGate, prevC}),
+        nn.CMulTable(1,1)({inGate, inTanh})
       })
     -- Calculate output
-    local out = nn.CMulTable()({ouGate, nn.Tanh()(nextC)})
+    local out = nn.CMulTable(1,1)({ouGate, nn.Tanh()(nextC)})
 
     table.insert(outputs, nextC)
    -- Dropout if neccessary
