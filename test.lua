@@ -17,7 +17,7 @@ function test(opt,datasetSeq,epoch,testLog)
 
    local iteration
    if opt.iteration == 0 then
-      iteration = datasetSeq:size()/opt.batch
+      iteration = math.floor(datasetSeq:size()/opt.batch)
    else
       iteration = opt.iteration
    end
