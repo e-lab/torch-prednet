@@ -141,9 +141,9 @@ function display(opt, seqTable,targetF,targetC,output, flag)
 end
 function savePics(opt,target,output,epoch,t, disFlag)
    --Save pics
-   print('Save pics!')
    if disFlag ~= 'train' then disFlag = 'test' end
    if opt.savePics then
+      print('Save pics!')
       if opt.batch > 1 then
          target = target[1]:squeeze()
          output = output[1]:squeeze()
