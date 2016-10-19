@@ -72,9 +72,7 @@ function getModel()
             E[L] = { tUnit } - nn.SelectTable(4*L-3,4*L-3) -- connect output E to prev E of next clone
             C[L] = { tUnit } - nn.SelectTable(4*L-2,4*L-2) -- connect output R to same layer E of next clone
             H[L] = { tUnit } - nn.SelectTable(4*L-1,4*L-1) -- connect output R to same layer E of next clone
-            if L == 1 then
-               table.insert(tmp2, E[L])
-            end
+            table.insert(tmp2, E[L])
          else
             P[L] = { tUnit } - nn.SelectTable(4*L,4*L) -- select Ah output as output of network
             if L == 1  then
