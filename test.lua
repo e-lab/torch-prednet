@@ -1,8 +1,10 @@
 -- SangPil Kim, Eugenio Culurciello
 -- August - September 2016
 -------------------------------------------------------------------------------
-function test(opt,datasetSeq,epoch,testLog)
-   if opt.useGPU then
+local class = require 'class'
+local Te = class('Te')
+function Te:test(util,datasetSeq,epoch,testLog,model)
+   if util.useGPU then
       require 'cunn'
       require 'cutorch'
    end
@@ -16,19 +18,19 @@ function test(opt,datasetSeq,epoch,testLog)
    print('Validation epoch #', epoch)
 
    local iteration
-   if opt.iteration == 0 then
-      iteration = math.floor(datasetSeq:size()/opt.batch)
+   if util.iteration == 0 then
+      iteration = datasetSeq:size()/util.batch
    else
-      iteration = opt.iteration
+      iteration = util.iteration
    end
    for t = 1, iteration do
       xlua.progress(t, iteration)
       local sample = datasetSeq[t]
-      local inTableG0, targetC, targetF = prepareData(opt,sample)
+      local inTableG0, targetC, targetF = util:prepareData(sample)
       --Get output
       -- 1st term is 1st layer of Ahat 2end term is 1stLayer Error
       local output = model:forward(inTableG0)
-      local tcerr , tferr , tloss = computMatric(targetC, targetF, output)
+      local tcerr , tferr , tloss = util:computMatric(targetC, targetF, output)
       -- estimate f and gradients
       -- Calculate Error and sum
       cerr = cerr + tcerr
@@ -38,16 +40,18 @@ function test(opt,datasetSeq,epoch,testLog)
       -- compute statistics / report error
       if math.fmod(t, 1) == 0 then
         -- Display
-        if opt.display then
+        if util.display then
             local disFlag = 'test'
-           display(opt, inTableG0[#inTableG0], targetF, targetC, output[1], disFlag)
+           util:show(inTableG0[#inTableG0], targetF, targetC, output[1], disFlag)
         end
       end
    end
    --Batch is not divided since it is calcuated already in criterion
-   cerr = cerr/iteration/opt.batch
-   ferr = ferr/iteration/opt.batch
-   loss = loss/iteration/opt.batch
-   writLog(cerr,ferr,loss,testLog)
+   cerr = cerr/iteration/util.batch
+   ferr = ferr/iteration/util.batch
+   loss = loss/iteration/util.batch
+   util:writLog(cerr,ferr,loss,testLog)
    print ('Validation completed!')
 end
+
+return Te

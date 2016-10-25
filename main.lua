@@ -1,4 +1,4 @@
---Eugenio Culurciello, Sangpil Kim
+--Sangpil Kim, Eugenio Culurciello
 -- with help from Alfredo Canziani and Abhishek Chaurasia
 -- August - September 2016
 -- PredNet in Torch7 - from: https://arxiv.org/abs/1605.08104
@@ -16,33 +16,38 @@ require 'optim'
 require 'xlua'
 require 'pl'
 local of = require 'opt'
-opt = of.parse(arg)
-
+local opt = of.parse(arg)
 torch.setdefaulttensortype('torch.FloatTensor')
 torch.manualSeed(opt.seed)
 os.execute('mkdir '..opt.savedir)
+torch.save(paths.concat(opt.savedir,'opt.t7'),opt)
 print('Using GPU?', opt.useGPU)
 print('How many layers?' ,opt.nlayers)
 
 --Call files
-paths.dofile('misc/util.lua')
-paths.dofile('misc/data.lua')
-paths.dofile('models/model.lua')
-paths.dofile('train.lua')
-paths.dofile('test.lua')
+local U = require 'misc/util'
+local loader = require 'misc/data.lua'
+local M = require 'models/model'
+local Tr= require 'train'
+local Te= require 'test'
+
+local util = U(opt)
+local initM = M(opt)
+local tr    = Tr(opt)
+local te    =Te(opt)
+local model = initM:getModel()
 
 local function main()
    print('Loading data...')
-   local dataFile, dataFileTest = loadData(opt.dataBig)
-   local datasetSeq = getdataSeq(dataFile, opt.dataBig, opt.batch) -- we sample nSeq consecutive frames
-   local testDatasetSeq = getdataSeq(dataFileTest, opt.dataBig, opt.batch) -- we sample nSeq consecutive frames
-   setup(opt)
-   trainLog = optim.Logger(paths.concat(opt.savedir,'train.log'))
-   testLog = optim.Logger(paths.concat(opt.savedir,'test.log'))
+   local dataFile, dataFileTest = loader.loadData(opt.dataBig)
+   local datasetSeq = loader.getdataSeq(dataFile,opt) -- we sample nSeq consecutive frames
+   local testDatasetSeq = loader.getdataSeq(dataFileTest,opt) -- we sample nSeq consecutive frames
+   local trainLog = optim.Logger(paths.concat(opt.savedir,'train.log'))
+   local testLog = optim.Logger(paths.concat(opt.savedir,'test.log'))
    --Main loop
    for epoch = 1 , opt.maxEpochs do
-      train(opt, datasetSeq, epoch, trainLog)
-      test(opt, testDatasetSeq, epoch, testLog)
+      tr:train(util, datasetSeq, epoch, trainLog, model)
+      te:test(util, testDatasetSeq, epoch, testLog, model)
       collectgarbage()
    end
 end

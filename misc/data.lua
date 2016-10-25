@@ -2,7 +2,8 @@
 -- uses moving MNIST numbers to create a video animation and fixed lines to debug
 -- SangPil Kim  added batch option
 -------------------------------------------------------------------------------
-function loadData(big)
+local loader = {}
+function loader.loadData(big)
   print('Using large dataset?',big)
   local dataFile, datasetSeq
   if big then
@@ -14,8 +15,8 @@ function loadData(big)
   end
   return dataFile, dataFileTest
 end
-function getdataSeq(datafile, big, batch)
-
+function loader.getdataSeq(datafile, opt)
+   local batch = opt.batch
    local data
    data = torch.load(datafile) -- if dataset in binary format
 
@@ -66,3 +67,4 @@ function getdataSeq(datafile, big, batch)
                                     end})
    return datasetSeq
 end
+return loader

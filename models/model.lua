@@ -7,31 +7,38 @@
 require 'nn'
 require 'models/matchnet'
 -- nngraph.setDebug(true)
-function getModel()
-   for i =1 , opt.nlayers do
+local class = require'class'
+local G = class('G')
+function G:__init(opt)
+   for name, value in pairs(opt) do
+      self[name] = value
+   end
+   for i =1 , self.nlayers do
       if i == 1 then
-         opt.nFilters  = {1} -- number of filters in the encoding/decoding layers
+         self.nFilters  = {1} -- number of filters in the encoding/decoding layers
       else
-         table.insert(opt.nFilters, (i-1)*32)
+         table.insert(self.nFilters, (i-1)*32)
       end
    end
+end
+function G:getModel()
    local clOpt = {}
-   clOpt['nSeq'] = opt.nSeq
+   clOpt['nSeq'] = self.nSeq
    clOpt['kw'] = 3
    clOpt['kh'] = 3
-   clOpt['st'] = opt.stride
-   clOpt['pa'] = opt.padding
+   clOpt['st'] = self.stride
+   clOpt['pa'] = self.padding
    clOpt['dropOut'] = 0
-   clOpt['lm'] = opt.lstmLayers
+   clOpt['lm'] = self.lstmLayers
 
    -- instantiate MatchNet:
-   local unit = MatchNet(opt.nlayers, opt.stride, opt.poolsize, opt.nFilters, clOpt, false, opt.batch) -- false testing mode
+   local unit = MatchNet(self.nlayers, self.stride, self.poolsize, self.nFilters, clOpt, false, self.batch) -- false testing mode
    -- nngraph.annotateNodes()
    -- graph.dot(unit.fg, 'MatchNet-unit','Model-unit') -- graph the model!
 
    -- clone model through time-steps:
    local clones = {}
-   for i = 1, opt.nSeq do
+   for i = 1, self.nSeq do
       if i == 1 then
          clones[i] = unit:clone()
       else
@@ -45,7 +52,7 @@ function getModel()
    E={} C={} H={} E0={} C0={} H0={} P={} tmp2={}
    -- initialize inputs:
    local xi = nn.Identity()()
-   for L=1, opt.nlayers do
+   for L=1, self.nlayers do
       E0[L] = nn.Identity()()
       C0[L] = nn.Identity()()
       H0[L] = nn.Identity()()
@@ -54,12 +61,12 @@ function getModel()
       H[L] = H0[L]
    end
    -- create model as combination of units:
-   for i=1, opt.nSeq do
+   for i=1, self.nSeq do
       -- set inputs to clones:
       uInputs={}
       xii = {xi} - nn.SelectTable(i,i) -- select i-th input from sequence
       table.insert(uInputs, xii)
-      for L=1, opt.nlayers do
+      for L=1, self.nlayers do
          table.insert(uInputs, E[L])
          table.insert(uInputs, C[L])
          table.insert(uInputs, H[L])
@@ -67,12 +74,14 @@ function getModel()
       -- clones inputs = {input_sequence, E_layer_1, R_layer_1, E_layer_2, R_layer_2, ...}
       tUnit = clones[i] ({ table.unpack(uInputs) }) -- inputs applied to clones
       -- connect clones:
-      for L=1, opt.nlayers do
-         if i < opt.nSeq then
+      for L=1, self.nlayers do
+         if i < self.nSeq then
             E[L] = { tUnit } - nn.SelectTable(4*L-3,4*L-3) -- connect output E to prev E of next clone
             C[L] = { tUnit } - nn.SelectTable(4*L-2,4*L-2) -- connect output R to same layer E of next clone
             H[L] = { tUnit } - nn.SelectTable(4*L-1,4*L-1) -- connect output R to same layer E of next clone
-            table.insert(tmp2, E[L])
+            if L == 1 then
+               table.insert(tmp2, E[L])
+            end
          else
             P[L] = { tUnit } - nn.SelectTable(4*L,4*L) -- select Ah output as output of network
             if L == 1  then
@@ -83,17 +92,24 @@ function getModel()
    end
    local inputs = {}
    local tmp  = {}
-   for L=1, opt.nlayers do
+   for L=1, self.nlayers do
       table.insert(inputs, E0[L])
       table.insert(inputs, C0[L])
       table.insert(inputs, H0[L])
       table.insert(tmp, P[L])
    end
    table.insert(inputs, xi)
-   if opt.nlayers > 1 then
+   if self.nlayers > 1 then
       outputs = {tmp - nn.SelectTable(1,1), table.unpack(tmp2)}
       --outputs = {outputs-nn.SelectTable(1)}
    end
-   model = nn.gModule(inputs, outputs ) -- output is P_layer_1 (prediction / Ah)
+   local model = nn.gModule(inputs, outputs ) -- output is P_layer_1 (prediction / Ah)
+   if self.useGPU then
+      require 'cunn'
+      require 'cutorch'
+      cutorch.setDevice(self.GPUID)
+      model:cuda()
+   end
    return model
 end
+return G
