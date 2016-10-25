@@ -142,9 +142,9 @@ function util:show(seqTable,targetF,targetC,output, flag)
 end
 function util:saveImg(target,output,epoch,t, disFlag)
    --Save pics
-   print('Save pics!')
    if disFlag ~= 'train' then disFlag = 'test' end
    if self.savePics then
+      print('Save pics!')
       if self.batch > 1 then
          target = target[1]:squeeze()
          output = output[1]:squeeze()
