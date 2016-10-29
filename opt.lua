@@ -8,21 +8,30 @@ function o.parse(arg)
      Command line options:
      --seed                (default 1250)     initial random seed
      --useGPU                                 use GPU in training
-     --GPUID               (default 1)        select GPU
+     --gpuId               (default 1)        select GPU
      Data parameters:
-     --dataBig                                use large dataset or reduced one
+     --dataDir             (default dataSets)  Dataset dirs
+     --dataName            (default data-small) Dataset name
+     --atari                                 Use atari
+     --model               (default testV)       Model dir
 
      Training parameters:
      -r,--learningRate       (default 1e-3)  learning rate
+     -c,--channel            (default 1)     channel of data
      -d,--learningRateDecay  (default 0)     learning rate decay
      -w,--weightDecay        (default 0)     L2 penalty on the weights
      -m,--momentum           (default 0.9)   momentum parameter
      --maxEpochs             (default 100)   max number of training epochs
      --iteration             (default 0)     like to set own iteration default dataSize
      --batch                 (default 10)    batch size
+     --trainOnly                             Train only if true
+     --modelKeep                             Long video
+     --vis                                   Show hidden states
+     --visOnly                               Show only without training
+     --visIdx                (default 1)     Pointer for output table index to visualize
 
      Save options:
-     --savedir         (default './results') subdirectory to save experiments in
+     --savedir         (default 'testV') subdirectory to save experiments in
      -s,--save                               save models
      --multySave                             save models respect to saveEpoch
      --saveEpoch             (default 1 )    Save every period epoch
