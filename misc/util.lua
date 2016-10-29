@@ -5,18 +5,24 @@ local class = require 'class'
 local util = class('util')
 function util:__init(opt)
    print('init util')
+   if opt.useGPU then
+      require 'cudnn'
+      require 'cutorch'
+      cutorch.setDevice(opt.gpuId)
+   end
    --Set up optiopn
    for name, value in pairs(opt) do
       self[name] = value
    end
    for i =1 , self.nlayers do
       if i == 1 then
-         self.nFilters  = {1} -- number of filters in the encoding/decoding layers
+         self.nFilters  = {opt.channel} -- number of filters in the encoding/decoding layers
       else
          table.insert(self.nFilters, (i-1)*32)
       end
    end
 end
+
 function util:computMatric(targetC, targetF, output)
    local criterion = nn.MSECriterion()
    local cerr = criterion:forward(targetC:squeeze(),output[1]:squeeze())
@@ -29,6 +35,7 @@ function util:computMatric(targetC, targetF, output)
    f = f/numE
    return cerr, ferr, f
 end
+
 function util:writLog(cerr,ferr,loss,logger)
    print(string.format('cerr : %.4f ferr: %.4f loss: %.2f',cerr, ferr, loss))
    logger:add{
@@ -37,25 +44,31 @@ function util:writLog(cerr,ferr,loss,logger)
       ['loss'] = loss
    }
 end
+
 function util:shipGPU(table)
    for i,item in pairs(table) do
       table[i] = item:cuda()
    end
 end
+
 function util:prepareDedw(output,targetF)
    local dE_dy = {}
    local criterion = nn.MSECriterion()
+   local dumy = torch.Tensor()
    if self.useGPU then
       criterion:cuda()
+      dumy = dumy:cuda()
    end
-   local dp_dy = criterion:backward(output[1],targetF)
+   --local dp_dy = criterion:backward(output[1],targetF)
    --table.insert(dE_dy,torch.zeros(output[1]:size()):cuda())
-   table.insert(dE_dy,dp_dy)
-   for i = 1 , #output - 1 do
-      table.insert(dE_dy,output[i+1])
+   --table.insert(dE_dy,dp_dy)
+   table.insert(dE_dy,dumy:resizeAs(output[1]):zero())
+   for i = 2 , #output do
+      table.insert(dE_dy,output[i])
    end
    return dE_dy
 end
+
 function util:prepareData(sample)
    if self.useGPU then
       require 'cunn'
@@ -114,8 +127,85 @@ function util:prepareData(sample)
    end
    return inTableG0, targetC, targetF
 end
-function util:show(seqTable,targetF,targetC,output, flag)
-   if self.display then
+
+function util:prepareDedwKeep(output,targetF)
+   local dE_dy = {}
+   local criterion = nn.MSECriterion()
+   local dumy = torch.Tensor()
+   if self.useGPU then
+      criterion:cuda()
+      dumy = dumy:cuda()
+   end
+   --local dp_dy = criterion:backward(output[1],targetF)
+   --table.insert(dE_dy,torch.zeros(output[1]:size()):cuda())
+   --table.insert(dE_dy,dp_dy)
+   table.insert(dE_dy,dumy:resizeAs(output[1]):zero())
+   for i = 2 , #output do
+      if i < self.nSeq+2 then
+         table.insert(dE_dy,output[i])
+      else
+         table.insert(dE_dy,dumy:resizeAs(output[i]):zero())
+      end
+   end
+   return dE_dy
+end
+
+function util:prepareDataKeep(sample,output)
+   if self.useGPU then
+      require 'cunn'
+      require 'cutorch'
+   end
+   -- reset initial network state:
+   local inTableG0 = {}
+   local batch = self.batch
+   local gap = self.nSeq-1
+   for L=1, self.nlayers do
+      table.insert( inTableG0, output[1+gap+L]) -- E(t-1)
+      table.insert( inTableG0, output[1+gap+L+self.nlayers])-- C(t-1)
+      table.insert( inTableG0, output[1+gap+L+self.nlayers*2])-- H(t-1)
+   end
+   -- get input video sequence data:
+   local seqTable = {} -- stores the input video sequence
+   --sample is the table
+   local data = sample[1]
+   local nSeq, flag
+   if self.batch > 1 then
+      nSeq = data:size(2)
+      flag = 2
+   else
+      nSeq = data:size(1)
+      flag = 1
+   end
+   for i = 1, nSeq do
+      table.insert(seqTable, data:select(flag,i)) -- use CPU
+   end
+   --Ship to GPU
+   if self.useGPU then
+      self:shipGPU(inTableG0)
+      self:shipGPU(seqTable)
+   end
+   -- prepare table of states and input:
+   table.insert(inTableG0, seqTable)
+   -- Target
+   local targetC, targetF = torch.Tensor(), torch.Tensor()
+   if self.batch == 1 then
+      --Extract last sequence to do metric
+      targetF:resizeAs(data[nSeq]):copy(data[nSeq])
+      targetC:resizeAs(data[nSeq]):copy(data[nSeq-1])
+   else
+      targetF:resizeAs(data[{{},nSeq,{},{}}]):copy(data[{{},nSeq,{},{}}])
+      targetC:resizeAs(data[{{},nSeq-1,{},{}}]):copy(data[{{},nSeq-1,{},{}}])
+   end
+   if self.useGPU then
+      targetF = targetF:cuda()
+      targetC = targetC:cuda()
+      data    = data:cuda()
+   end
+   return inTableG0, targetC, targetF
+end
+
+function util:show(seqTable,targetF,targetC,output, flag, index)
+   if self.display or self.visOnly then
       if flag == 'train' then
         legend = 'Train: t-3, t-2, t-1, Target, Prediction'
       else
@@ -123,6 +213,8 @@ function util:show(seqTable,targetF,targetC,output, flag)
       end
       require 'env'
       local pic
+      local index = index or 1
+      local output = output[index]
       if self.batch == 1 then
          pic = { seqTable[#seqTable-2]:squeeze(),
                           seqTable[#seqTable-2]:squeeze(),
@@ -140,6 +232,7 @@ function util:show(seqTable,targetF,targetC,output, flag)
                          legend = legend}
    end
 end
+
 function util:saveImg(target,output,epoch,t, disFlag)
    --Save pics
    if disFlag ~= 'train' then disFlag = 'test' end
@@ -153,6 +246,7 @@ function util:saveImg(target,output,epoch,t, disFlag)
       image.save(paths.concat(self.savedir ,'pic_output_'..epoch..'_'..t..'_'..disFlag..'.jpg'), output)
    end
 end
+
 function util:saveM( model, selfimState, epoch)
    --Save models
    if self.save  then
@@ -168,6 +262,7 @@ function util:saveM( model, selfimState, epoch)
       end
    end
 end
+
 function util:printop()
    print('option')
    print(self)

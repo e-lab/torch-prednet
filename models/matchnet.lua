@@ -91,7 +91,7 @@ function MatchNet(nlayers, input_stride, poolsize, mapss, clOpt, testing, batch)
 
       -- E[L] = {A, Ah} - nn.CSubTable(1) - op -- PReLU instead of +/-ReLU
       if batch > 1 then
-         E[L] = { {A, Ah} - nn.CSubTable(1,1) - nn.ReLU(), {Ah, A} - nn.CSubTable(1,1) - nn.ReLU() } - nn.JoinTable(2,mapss[L]) -- same and PredNet model
+         E[L] = { {A, Ah} - nn.CSubTable(1,1) - nn.ReLU(), {Ah, A} - nn.CSubTable(1,1) - nn.ReLU() } - nn.JoinTable(2,2*mapss[L]) -- same and PredNet model
       else
          E[L] = { {A, Ah} - nn.CSubTable(1,1) - nn.ReLU(), {Ah, A} - nn.CSubTable(1,1) - nn.ReLU() } - nn.JoinTable(1) -- same and PredNet model
       end

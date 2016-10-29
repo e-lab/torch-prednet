@@ -14,7 +14,8 @@ function convLSTM(inDim, outDim, opt)
   local dropout = opt.dropOut or 0
   local kw, kh  = opt.kw, opt.kh
   local stw, sth = opt.st, opt.st
-  local paw, pah = opt.pa, opt.pa
+  local paw = math.ceil(stw / 2)
+  local pah = math.ceil(sth / 2)
   local n = opt.lm
   -- Input  is 1+ 2*#Layer
   -- Output is 1+ 2*#Layer
@@ -54,8 +55,8 @@ function convLSTM(inDim, outDim, opt)
 
     local h2Ig = scNB(outDim, outDim, kw, kh, stw, sth, paw, pah)(prevH)
     local h2Fg = scNB(outDim, outDim, kw, kh, stw, sth, paw, pah)(prevH)
-    local h2Og = scNB(outDim, outDim, kw, kh, stw, sth, paw, pah)(prevC)
-    local h2It = scNB(outDim, outDim, kw, kh, stw, sth, paw, pah)(prevC)
+    local h2Og = scNB(outDim, outDim, kw, kh, stw, sth, paw, pah)(prevH)
+    local h2It = scNB(outDim, outDim, kw, kh, stw, sth, paw, pah)(prevH)
 
     local ig = nn.CAddTable(1,1)({i2Ig, h2Ig})
     local fg = nn.CAddTable(1,1)({i2Fg, h2Fg})

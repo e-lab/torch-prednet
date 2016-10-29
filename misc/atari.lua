@@ -3,10 +3,17 @@
 -- SangPil Kim  added batch option
 -------------------------------------------------------------------------------
 local loader = {}
-function loader.getdataSeq(dataPath,opt)
+require 'image'
+function loader.loadData()
+  print('Using large dataset? atari')
+  local dataFile, datasetSeq
+  dataFile  = 'dataSets/atari/500_20/frameTensor.t7'
+  return dataFile, dataFileTest
+end
+function loader.getdataSeq(datafile, opt)
    local batch = opt.batch
    local data
-   data = torch.load(dataPath) -- if dataset in binary format
+   data = torch.load(datafile) -- if dataset in binary format
 
    local datasetSeq ={}
    data = data:float()/255.0
@@ -17,6 +24,14 @@ function loader.getdataSeq(dataPath,opt)
    print ('Dataset size: '..nsamples ..' '..nseq..' '..nrows..' '..ncols)
    function datasetSeq:size()
       return nsamples
+   end
+   function converter(tmp)
+      local pack = torch.Tensor()
+      pack = pack:resize(20,3,64,64)
+      for t = 1, nseq do
+         pack[t] = image.scale(tmp[t],64,64,'bilinear')
+      end
+      return pack
    end
 
    local idx = 1
@@ -29,23 +44,25 @@ function loader.getdataSeq(dataPath,opt)
       end
       local seq = torch.Tensor()
       if batch > 1 then
-         seq:resize(batch,nseq,nrows,ncols)
+         seq:resize(batch,nseq,3,64,64)
          for j = 1 , batch do
             local i = shuffle[idx]
-            seq[j] = data:select(1,i)
+            local tmp = data:select(1,i)
+            seq[j] = converter(tmp)
          end
          idx = idx + batch
       else
          local i = shuffle[idx]
-         seq = data:select(1,i)
+         local tmp = data:select(1,i)
+         seq = converter(tmp)
          idx = idx + 1
       end
       return seq,i
    end
    if batch > 1 then
-      dsample = torch.Tensor(batch,nseq,1,nrows,ncols)
+      dsample = torch.Tensor(batch,nseq,3,64,64)
    else
-      dsample = torch.Tensor(nseq,1,nrows,ncols)
+      dsample = torch.Tensor(nseq,3,64,64)
    end
 
    setmetatable(datasetSeq, {__index = function(self, index)

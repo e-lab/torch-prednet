@@ -1,5 +1,5 @@
 -- MatchNet training: predicting future frames in video
--- Eugenio Culurciello, Sangpil Kim August - September 2016
+--Sangpil Kim, Eugenio Culurciello August - September 2016
 --
 -- code training and testing inspired by: https://github.com/viorik/ConvLSTM
 --
@@ -8,48 +8,27 @@ require 'nn'
 require 'models/matchnet'
 -- nngraph.setDebug(true)
 local class = require'class'
-local G = class('G')
-function G:__init(opt)
+local S = class('S')
+function S:__init(opt)
    for name, value in pairs(opt) do
       self[name] = value
    end
-   for i =1 , self.nlayers do
-      if i == 1 then
-         self.nFilters  = {opt.channel} -- number of filters in the encoding/decoding layers
-      else
-         table.insert(self.nFilters, (i-1)*32)
-      end
-   end
-   local clOpt = {}
-   clOpt['nSeq'] = self.nSeq
-   clOpt['kw'] = 3
-   clOpt['kh'] = 3
-   clOpt['st'] = self.stride
-   clOpt['pa'] = self.padding
-   clOpt['dropOut'] = 0
-   clOpt['lm'] = self.lstmLayers
-   self.clOpt = clOpt
 end
-function G:getModel()
+function S:getModel()
    if self.useGPU then
       require 'cudnn'
       require 'cunn'
       require 'cutorch'
    end
-   -- instantiate MatchNet:
-   local unit = MatchNet(self.nlayers, self.stride, self.poolsize, self.nFilters, self.clOpt, false, self.batch) -- false testing mode
+   -- load trained version of matchnet
+   local unit = torch.load(paths.concat(self.model,'model.net')) -- false testing mode
    -- nngraph.annotateNodes()
    -- graph.dot(unit.fg, 'MatchNet-unit','Model-unit') -- graph the model!
 
    -- clone model through time-steps:
    local clones = {}
    for i = 1, self.nSeq do
-      if i == 1 and not self.modelKeep then
-         clones[i] = unit:clone()
-      else
-         clones[i] = unit:clone('weight','bias','gradWeight','gradBias')
-         clones[i].__typename ='unit'..tostring(i)
-      end
+      clones[i] = unit:clone('weight','bias','gradWeight','gradBias')
    end
 
    -- create model by connecting clones outputs and setting up global input:
@@ -90,10 +69,8 @@ function G:getModel()
             end
          else
             E[L] = { tUnit } - nn.SelectTable(4*L-3,4*L-3) -- connect output E to prev E of next clone
-            if L == 1 then
-               P[L] = { tUnit } - nn.SelectTable(4*L,4*L) -- select Ah output as output of network
-               table.insert(pCon, P[L])
-            end
+            P[L] = { tUnit } - nn.SelectTable(4*L,4*L) -- select Ah output as output of network
+            table.insert(pCon, P[L])
             table.insert(eCon, E[L])
             if self.modelKeep then
                C[L] = { tUnit } - nn.SelectTable(4*L-2,4*L-2) -- connect output R to same layer E of next clone
@@ -127,10 +104,6 @@ function G:getModel()
    if self.useGPU then
       model:cuda()
    end
-
-   local models = {}
-   models.model = model
-   models.clone = clones[2]
-   return models
+   return model
 end
-return G
+return S
