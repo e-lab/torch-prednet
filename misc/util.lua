@@ -252,7 +252,7 @@ function util:saveM( model, selfimState, epoch)
    if self.save  then
       print('Save models!')
       if self.multySave then
-         torch.save(paths.concat(self.savedir ,'model_' .. epoch .. '.net'), model)
+         torch.save(paths.concat(self.savedir ,'model_' .. epoch .. '.net'), model:clearState():float())
          torch.save(paths.concat(self.savedir ,'selfimState_' .. epoch .. '.t7'), selfimState)
          torch.save(paths.concat(self.savedir ,'self' .. epoch .. '.t7'), self)
       else
